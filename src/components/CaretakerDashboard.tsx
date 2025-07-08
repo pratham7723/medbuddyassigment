@@ -1,8 +1,6 @@
 import { useEffect, useState } from "react";
 import supabase from "../supabaseClient";
 import CalendarView from "./CalendarView";
-// import { Bell, CalendarDays, ClipboardList, LogOut, UserCircle2 } from "lucide-react";
-import * as React from "react";
 
 // Use fallback icon for CheckCircle
 const CheckCircle: React.FC<{ className?: string }> = ({ className }) => (
@@ -10,7 +8,7 @@ const CheckCircle: React.FC<{ className?: string }> = ({ className }) => (
 );
 
 // --- StatCard Component ---
-function StatCard({ label, value, icon, color }: { label: string; value: string | number; icon: JSX.Element; color: string }) {
+function StatCard({ label, value, icon, color }: { label: string; value: string | number; icon: React.ReactNode; color: string }) {
   return (
     <div className={`rounded-lg p-4 flex items-center space-x-4 bg-gradient-to-br ${color} shadow-sm`}>
       <div className="bg-white rounded-full p-2 shadow">{icon}</div>
@@ -158,40 +156,6 @@ function ActivityTab({ recentActivity, loading }: { recentActivity: any[]; loadi
             </li>
           ))}
         </ul>
-      )}
-    </div>
-  );
-}
-
-// --- CalendarTab Component ---
-function CalendarTab({ calendarDate, setCalendarDate, daySummary, loadingSummary }: any) {
-  return (
-    <div className="bg-white p-4 rounded shadow-sm">
-      <h3 className="text-lg font-semibold mb-2">Calendar View</h3>
-      <CalendarView selected={calendarDate} onSelect={setCalendarDate} />
-      {calendarDate && (
-        <div className="mt-4 text-sm text-gray-700">
-          <div className="font-semibold mb-1">Summary for {calendarDate.toLocaleDateString()}:</div>
-          {loadingSummary ? (
-            <div>Loading...</div>
-          ) : daySummary.length === 0 ? (
-            <div>No medication logs for this day.</div>
-          ) : (
-            <ul className="space-y-1">
-              {daySummary.map((log: any) => (
-                <li key={log.id} className="flex items-center space-x-2">
-                  <span className={`inline-block w-2 h-2 rounded-full ${log.taken ? "bg-green-500" : "bg-red-500"}`}></span>
-                  <span className="font-medium">{log.med_name}</span>
-                  <span className="text-xs text-gray-500">{log.taken ? "Taken" : "Missed"}</span>
-                  {log.patient_name && <span className="text-xs text-gray-400 ml-2">({log.patient_name})</span>}
-                  <p className="text-xs text-gray-400">
-                    Scheduled: {log.scheduled_at ? new Date(log.scheduled_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "N/A"}
-                  </p>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
       )}
     </div>
   );
@@ -360,8 +324,8 @@ function CaretakerCalendarTab({ profile }: { profile: any }) {
 }
 
 export default function CaretakerDashboard({ profile }: { profile: any }) {
-  const [meds, setMeds] = useState([]);
-  const [patients, setPatients] = useState([]);
+  const [meds, setMeds] = useState<any[]>([]);
+  const [patients, setPatients] = useState<any[]>([]);
   const [medName, setMedName] = useState("");
   const [dosage, setDosage] = useState("");
   const [assignedPatient, setAssignedPatient] = useState("");
@@ -371,16 +335,10 @@ export default function CaretakerDashboard({ profile }: { profile: any }) {
   const [missedThisMonth, setMissedThisMonth] = useState(0);
   const [takenThisWeek, setTakenThisWeek] = useState(0);
   const [activeTab, setActiveTab] = useState("overview");
-  const [calendarDate, setCalendarDate] = useState<Date | null>(null);
-  const [daySummary, setDaySummary] = useState<any[]>([]);
-  const [loadingSummary, setLoadingSummary] = useState(false);
   const [recentActivity, setRecentActivity] = useState<any[]>([]);
   const [loadingActivity, setLoadingActivity] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [loadingNotifications, setLoadingNotifications] = useState(false);
-  const [quickActionPatient, setQuickActionPatient] = useState("");
-  const [sendingReminder, setSendingReminder] = useState(false);
-  const [reminderMsg, setReminderMsg] = useState("");
   const [monthTaken, setMonthTaken] = useState(0);
   const [monthMissed, setMonthMissed] = useState(0);
   const [monthTotal, setMonthTotal] = useState(0);
@@ -430,25 +388,6 @@ export default function CaretakerDashboard({ profile }: { profile: any }) {
     };
     fetchMonthAdherence();
   }, []);
-
-  // Fetch summary when calendarDate changes
-  useEffect(() => {
-    const fetchDaySummary = async () => {
-      if (!calendarDate) {
-        setDaySummary([]);
-        return;
-      }
-      setLoadingSummary(true);
-      const dateStr = calendarDate.toISOString().split("T")[0];
-      const { data, error } = await supabase
-        .from("medication_logs")
-        .select("*")
-        .eq("date", dateStr);
-      setDaySummary(data || []);
-      setLoadingSummary(false);
-    };
-    fetchDaySummary();
-  }, [calendarDate]);
 
   // Fetch recent activity for all patients under this caretaker
   useEffect(() => {
@@ -573,7 +512,6 @@ export default function CaretakerDashboard({ profile }: { profile: any }) {
 
   const addMedication = async () => {
     if (!medName || !dosage || !assignedPatient || selectedDays.length === 0 || !timeOfDay) return;
-    const patientObj = patients.find((p: any) => p.id === assignedPatient);
     const { error } = await supabase.from("medications").insert({
       caretaker_id: profile.id,
       user_id: assignedPatient,

@@ -4,10 +4,8 @@ import supabase from "../supabaseClient";
 import {
   UserCircle2,
   CheckCircle,
-  XCircle,
-  CalendarDays,
-  Bell,
   ClipboardList,
+  CalendarDays,
   LogOut,
 } from "lucide-react";
 import CalendarView from "./CalendarView";
