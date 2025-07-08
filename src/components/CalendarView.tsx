@@ -10,9 +10,14 @@ function getFirstDayOfMonth(year: number, month: number) {
   return new Date(year, month, 1).getDay();
 }
 
-export default function CalendarView({ selected, onSelect }: {
+export default function CalendarView({
+  selected,
+  onSelect,
+  logs = [],
+}: {
   selected: Date | null,
-  onSelect: (date: Date) => void
+  onSelect: (date: Date) => void,
+  logs?: any[]
 }) {
   const today = new Date();
   const [currentMonth, setCurrentMonth] = useState(today.getMonth());
@@ -56,6 +61,17 @@ export default function CalendarView({ selected, onSelect }: {
     );
   };
 
+  // Helper to get log status for a day
+  const getDayStatus = (day: number) => {
+    if (!logs || logs.length === 0) return null;
+    const dateStr = new Date(currentYear, currentMonth, day).toISOString().split("T")[0];
+    const logsForDay = logs.filter((log: any) => log.date === dateStr);
+    if (logsForDay.length === 0) return null;
+    if (logsForDay.every((l: any) => l.taken)) return "taken";
+    if (logsForDay.some((l: any) => !l.taken)) return "missed";
+    return null;
+  };
+
   // Generate calendar grid
   const days = [];
   for (let i = 0; i < firstDay; i++) {
@@ -87,6 +103,13 @@ export default function CalendarView({ selected, onSelect }: {
               className={`w-8 h-8 rounded-full flex items-center justify-center
                 ${isToday(day) ? "border-2 border-blue-500" : ""}
                 ${isSelected(day) ? "bg-blue-500 text-white" : "hover:bg-blue-100"}
+                ${
+                  getDayStatus(day) === "taken"
+                    ? "ring-2 ring-green-400"
+                    : getDayStatus(day) === "missed"
+                    ? "ring-2 ring-red-400"
+                    : ""
+                }
               `}
               onClick={() => onSelect(new Date(currentYear, currentMonth, day))}
             >
