@@ -55,6 +55,7 @@ export default function Auth() {
       alert("Signup failed: " + profileError.message);
     } else {
       alert("Signup successful. Please check your email to confirm before logging in.");
+      navigate("/dashboard");
     }
   };
 
