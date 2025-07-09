@@ -97,7 +97,6 @@ export default function PatientDashboard({ profile }: { profile: any }) {
   const [meds, setMeds] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState("overview");
   const [todayTaken, setTodayTaken] = useState(0);
-  const [totalMeds, setTotalMeds] = useState(0);
   const [streak, setStreak] = useState(0);
   const [logs, setLogs] = useState<any[]>([]); // Add logs state
 
@@ -125,14 +124,14 @@ export default function PatientDashboard({ profile }: { profile: any }) {
     setLogs(data || []);
   };
 
-  // Example: Calculate stats (today's taken, total, streak)
+  // Example: Calculate stats (today's taken, streak)
   const fetchStats = async () => {
     const { data } = await supabase
       .from("medications")
       .select("*")
       .eq("user_id", profile.id);
 
-    setTotalMeds(data?.length || 0);
+    // setTotalMeds(data?.length || 0); // Removed unused totalMeds
     // For todayTaken, count logs for today
     const todayStr = new Date().toISOString().split('T')[0];
     const { data: todayLogs } = await supabase
@@ -302,7 +301,6 @@ export default function PatientDashboard({ profile }: { profile: any }) {
             ) : (
               <div className="space-y-4">
                 {todaysMedications.map((med: any) => {
-                  const status = getMedicationStatus(med);
                   const takenToday = isTakenToday(med.id);
                   const scheduledToday = isScheduledToday(med);
                   const withinTimeWindow = isWithinTimeWindow(med);
