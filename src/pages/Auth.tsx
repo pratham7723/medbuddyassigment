@@ -10,6 +10,7 @@ export default function Auth() {
   const [loading, setLoading] = useState(false);
   const [isSignup, setIsSignup] = useState(false);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
+  const [touched, setTouched] = useState<{ [key: string]: boolean }>({});
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
@@ -34,6 +35,40 @@ export default function Auth() {
     return name.trim().length >= 2;
   };
 
+  // Real-time validation for fields
+  useEffect(() => {
+    const newErrors: { [key: string]: string } = { ...errors };
+    if (touched.email) {
+      if (!email.trim()) {
+        newErrors.email = "Email is required";
+      } else if (!validateEmail(email)) {
+        newErrors.email = "Please enter a valid email address";
+      } else {
+        delete newErrors.email;
+      }
+    }
+    if (touched.password) {
+      if (!password) {
+        newErrors.password = "Password is required";
+      } else if (!validatePassword(password)) {
+        newErrors.password = "Password must be at least 6 characters long";
+      } else {
+        delete newErrors.password;
+      }
+    }
+    if (isSignup && touched.name) {
+      if (!name.trim()) {
+        newErrors.name = "Name is required";
+      } else if (!validateName(name)) {
+        newErrors.name = "Name must be at least 2 characters long";
+      } else {
+        delete newErrors.name;
+      }
+    }
+    setErrors(newErrors);
+    // eslint-disable-next-line
+  }, [email, password, name, touched.email, touched.password, touched.name, isSignup]);
+
   const clearErrors = () => {
     setErrors({});
   };
@@ -42,6 +77,7 @@ export default function Auth() {
     setRole(selectedRole);
     setIsSignup(mode === "signup");
     clearErrors();
+    setTouched({});
     // Clear form when switching modes
     if (mode === "login") {
       setName("");
@@ -82,13 +118,42 @@ export default function Auth() {
     clearErrors();
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      
+      const { error, data } = await supabase.auth.signInWithPassword({ email, password });
+
       if (error) {
         setErrors({ general: error.message });
-      } else {
-        navigate("/dashboard");
+        setLoading(false);
+        return;
       }
+
+      // Fetch user profile
+      const user = data?.user;
+      if (!user) {
+        setErrors({ general: "User not found." });
+        setLoading(false);
+        return;
+      }
+
+      const { data: profile, error: profileError } = await supabase
+        .from("user_profiles")
+        .select("*")
+        .eq("id", user.id)
+        .single();
+
+      if (profileError || !profile) {
+        setErrors({ general: "User profile not found." });
+        setLoading(false);
+        return;
+      }
+
+      // Check if the selected role matches the user's actual role
+      if (profile.role !== role) {
+        setErrors({ general: `This account is registered as a \"${profile.role}\". Please select the correct role.` });
+        setLoading(false);
+        return;
+      }
+
+      navigate("/dashboard");
     } catch (error) {
       setErrors({ general: "An unexpected error occurred. Please try again." });
     } finally {
@@ -165,8 +230,6 @@ export default function Auth() {
           </button>
         </div>
 
-        
-
         {/* Error Message */}
         {errors.general && (
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
@@ -186,8 +249,9 @@ export default function Auth() {
                 value={name}
                 onChange={(e) => {
                   setName(e.target.value);
-                  if (errors.name) clearErrors();
+                  setTouched((prev) => ({ ...prev, name: true }));
                 }}
+                onBlur={() => setTouched((prev) => ({ ...prev, name: true }))}
               />
               {errors.name && (
                 <p className="text-red-500 text-sm mt-1">{errors.name}</p>
@@ -206,8 +270,10 @@ export default function Auth() {
               value={email}
               onChange={(e) => {
                 setEmail(e.target.value);
-                if (errors.email) clearErrors();
+                setTouched((prev) => ({ ...prev, email: true }));
               }}
+              onBlur={() => setTouched((prev) => ({ ...prev, email: true }))}
+              autoComplete="email"
             />
             {errors.email && (
               <p className="text-red-500 text-sm mt-1">{errors.email}</p>
@@ -225,8 +291,10 @@ export default function Auth() {
               value={password}
               onChange={(e) => {
                 setPassword(e.target.value);
-                if (errors.password) clearErrors();
+                setTouched((prev) => ({ ...prev, password: true }));
               }}
+              onBlur={() => setTouched((prev) => ({ ...prev, password: true }))}
+              autoComplete="current-password"
             />
             {errors.password && (
               <p className="text-red-500 text-sm mt-1">{errors.password}</p>
