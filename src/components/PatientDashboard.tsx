@@ -126,12 +126,6 @@ export default function PatientDashboard({ profile }: { profile: any }) {
 
   // Example: Calculate stats (today's taken, streak)
   const fetchStats = async () => {
-    const { data } = await supabase
-      .from("medications")
-      .select("*")
-      .eq("user_id", profile.id);
-
-    // setTotalMeds(data?.length || 0); // Removed unused totalMeds
     // For todayTaken, count logs for today
     const todayStr = new Date().toISOString().split('T')[0];
     const { data: todayLogs } = await supabase
@@ -214,18 +208,6 @@ export default function PatientDashboard({ profile }: { profile: any }) {
     };
     
     return timeWindows[med.time_of_day] || med.time_of_day;
-  };
-
-  // Helper: get status for medication today
-  const getMedicationStatus = (med: any) => {
-    const takenToday = isTakenToday(med.id);
-    const scheduledToday = isScheduledToday(med);
-    const withinTimeWindow = isWithinTimeWindow(med);
-    
-    if (takenToday) return { status: 'taken', text: 'Taken', color: 'bg-green-500 text-white' };
-    if (scheduledToday && withinTimeWindow) return { status: 'due', text: 'Due Now', color: 'bg-blue-600 text-white hover:bg-blue-700' };
-    if (scheduledToday && !withinTimeWindow) return { status: 'outside-time', text: 'Outside Time Window', color: 'bg-gray-400 text-white' };
-    return { status: 'not-scheduled', text: 'Not Today', color: 'bg-gray-300 text-gray-600' };
   };
 
   // Filter medications to show only today's scheduled ones
