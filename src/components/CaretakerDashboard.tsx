@@ -34,7 +34,8 @@ function TabButton({ active, onClick, children }: { active: boolean; onClick: ()
 
 // --- OverviewTab Component ---
 function OverviewTab({
-  meds, patients, medName, setMedName, dosage, setDosage, assignedPatient, setAssignedPatient, addMedication, deleteMedication, monthTaken, monthMissed, monthTotal, selectedDays, setSelectedDays, timeOfDay, setTimeOfDay
+  meds, patients, medName, setMedName, dosage, setDosage, assignedPatient, setAssignedPatient, addMedication, deleteMedication, monthTaken, monthMissed, monthTotal, selectedDays, setSelectedDays, timeOfDay, setTimeOfDay,
+  editingMed, startEdit, cancelEdit, updateMedication, editMedName, setEditMedName, editDosage, setEditDosage, editAssignedPatient, setEditAssignedPatient, editSelectedDays, setEditSelectedDays, editTimeOfDay, setEditTimeOfDay
 }: any) {
   const daysOfWeek = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
   const timeOptions = [
@@ -52,6 +53,15 @@ function OverviewTab({
       setSelectedDays([...selectedDays, day]);
     }
   };
+
+  const toggleEditDay = (day: string) => {
+    if (editSelectedDays.includes(day)) {
+      setEditSelectedDays(editSelectedDays.filter((d: string) => d !== day));
+    } else {
+      setEditSelectedDays([...editSelectedDays, day]);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Monthly Adherence Progress */}
@@ -66,6 +76,7 @@ function OverviewTab({
           <span>📅 {monthTotal - monthTaken - monthMissed} days Remaining</span>
         </div>
       </div>
+      
       {/* Assign Medication */}
       <div className="bg-white p-4 rounded shadow-sm">
         <h3 className="text-lg font-semibold mb-2">Assign Medication</h3>
@@ -101,6 +112,74 @@ function OverviewTab({
           Add Medication
         </button>
       </div>
+
+      {/* Edit Medication Form */}
+      {editingMed && (
+        <div className="bg-blue-50 p-4 rounded shadow-sm border border-blue-200">
+          <h3 className="text-lg font-semibold mb-2 text-blue-800">Edit Medication</h3>
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-4">
+            <input 
+              className="border p-2 rounded" 
+              placeholder="Medication Name" 
+              value={editMedName} 
+              onChange={e => setEditMedName(e.target.value)} 
+            />
+            <input 
+              className="border p-2 rounded" 
+              placeholder="Dosage" 
+              value={editDosage} 
+              onChange={e => setEditDosage(e.target.value)} 
+            />
+            <select 
+              className="border p-2 rounded" 
+              value={editAssignedPatient} 
+              onChange={e => setEditAssignedPatient(e.target.value)}
+            >
+              <option value="">Select Patient</option>
+              {patients.map((p: any) => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
+            </select>
+            <select 
+              className="border p-2 rounded" 
+              value={editTimeOfDay} 
+              onChange={e => setEditTimeOfDay(e.target.value)}
+            >
+              <option value="">Select Time</option>
+              {timeOptions.map((t) => (
+                <option key={t.value} value={t.value}>{t.label}</option>
+              ))}
+            </select>
+          </div>
+          <div className="flex gap-2 mt-2">
+            {daysOfWeek.map(day => (
+              <label key={day} className="flex items-center gap-1">
+                <input
+                  type="checkbox"
+                  checked={editSelectedDays.includes(day)}
+                  onChange={() => toggleEditDay(day)}
+                />
+                {day}
+              </label>
+            ))}
+          </div>
+          <div className="flex gap-2 mt-4">
+            <button 
+              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded" 
+              onClick={updateMedication}
+            >
+              Update Medication
+            </button>
+            <button 
+              className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded" 
+              onClick={cancelEdit}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Medication List */}
       <div className="bg-white p-4 rounded shadow-sm">
         <h3 className="text-lg font-semibold mb-2">All Medications</h3>
@@ -123,9 +202,20 @@ function OverviewTab({
                     Time: {med.time_of_day || 'N/A'}
                   </p>
                 </div>
-                <button onClick={() => deleteMedication(med.id)} className="bg-red-500 text-white px-3 py-1 rounded">
-                  Delete
-                </button>
+                <div className="flex gap-2">
+                  <button 
+                    onClick={() => startEdit(med)} 
+                    className="bg-blue-500 text-white px-3 py-1 rounded text-sm hover:bg-blue-600"
+                  >
+                    Edit
+                  </button>
+                  <button 
+                    onClick={() => deleteMedication(med.id)} 
+                    className="bg-red-500 text-white px-3 py-1 rounded text-sm hover:bg-red-600"
+                  >
+                    Delete
+                  </button>
+                </div>
               </div>
             ))}
           </div>
@@ -344,6 +434,13 @@ export default function CaretakerDashboard({ profile }: { profile: any }) {
   const [monthTotal, setMonthTotal] = useState(0);
   const [selectedDays, setSelectedDays] = useState<string[]>([]);
   const [timeOfDay, setTimeOfDay] = useState("");
+  // Edit state
+  const [editingMed, setEditingMed] = useState<any>(null);
+  const [editMedName, setEditMedName] = useState("");
+  const [editDosage, setEditDosage] = useState("");
+  const [editAssignedPatient, setEditAssignedPatient] = useState("");
+  const [editSelectedDays, setEditSelectedDays] = useState<string[]>([]);
+  const [editTimeOfDay, setEditTimeOfDay] = useState("");
 
   useEffect(() => {
     fetchMeds();
@@ -532,6 +629,47 @@ export default function CaretakerDashboard({ profile }: { profile: any }) {
     fetchMeds();
   };
 
+  const startEdit = (med: any) => {
+    setEditingMed(med);
+    setEditMedName(med.name);
+    setEditDosage(med.dosage);
+    setEditAssignedPatient(med.user_id);
+    setEditSelectedDays(med.days_of_week || []);
+    setEditTimeOfDay(med.time_of_day || "");
+  };
+
+  const cancelEdit = () => {
+    setEditingMed(null);
+    setEditMedName("");
+    setEditDosage("");
+    setEditAssignedPatient("");
+    setEditSelectedDays([]);
+    setEditTimeOfDay("");
+  };
+
+  const updateMedication = async () => {
+    if (!editingMed || !editMedName || !editDosage || !editAssignedPatient || editSelectedDays.length === 0 || !editTimeOfDay) return;
+    
+    const { error } = await supabase
+      .from("medications")
+      .update({
+        name: editMedName,
+        dosage: editDosage,
+        user_id: editAssignedPatient,
+        days_of_week: editSelectedDays,
+        time_of_day: editTimeOfDay,
+      })
+      .eq("id", editingMed.id);
+    
+    if (error) {
+      alert("Error updating medication: " + error.message);
+      return;
+    }
+    
+    cancelEdit();
+    fetchMeds();
+  };
+
   const deleteMedication = async (id: number) => {
     await supabase.from("medications").delete().eq("id", id);
     fetchMeds();
@@ -615,6 +753,20 @@ export default function CaretakerDashboard({ profile }: { profile: any }) {
             setSelectedDays={setSelectedDays}
             timeOfDay={timeOfDay}
             setTimeOfDay={setTimeOfDay}
+            editingMed={editingMed}
+            startEdit={startEdit}
+            cancelEdit={cancelEdit}
+            updateMedication={updateMedication}
+            editMedName={editMedName}
+            setEditMedName={setEditMedName}
+            editDosage={editDosage}
+            setEditDosage={setEditDosage}
+            editAssignedPatient={editAssignedPatient}
+            setEditAssignedPatient={setEditAssignedPatient}
+            editSelectedDays={editSelectedDays}
+            setEditSelectedDays={setEditSelectedDays}
+            editTimeOfDay={editTimeOfDay}
+            setEditTimeOfDay={setEditTimeOfDay}
           />
         )}
         {activeTab === "activity" && (
