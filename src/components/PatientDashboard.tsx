@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import CalendarView from "./CalendarView";
 
-function StatCard({ label, value, icon, color }: { label: string; value: string | number; icon: JSX.Element; color: string }) {
+function StatCard({ label, value, icon, color }: { label: string; value: string | number; icon: React.ReactNode; color: string }) {
   return (
     <div className={`rounded-lg p-4 flex items-center space-x-4 bg-gradient-to-br ${color} shadow-sm`}>
       <div className="bg-white rounded-full p-2 shadow">{icon}</div>
@@ -168,6 +168,70 @@ export default function PatientDashboard({ profile }: { profile: any }) {
   // Helper: check if a medication is already marked as taken today
   const isTakenToday = (medId: number) => logs.some((log: any) => log.medication_id === medId);
 
+  // Helper: check if today is a scheduled day for this medication
+  const isScheduledToday = (med: any) => {
+    if (!med.days_of_week || med.days_of_week.length === 0) return true; // If no days specified, assume daily
+    
+    const today = new Date().toLocaleDateString('en-US', { weekday: 'short' });
+    return med.days_of_week.includes(today);
+  };
+
+  // Helper: check if current time is within the medication's time window
+  const isWithinTimeWindow = (med: any) => {
+    if (!med.time_of_day) return true; // If no time specified, allow anytime
+    
+    const now = new Date();
+    const currentHour = now.getHours();
+    const currentMinute = now.getMinutes();
+    const currentTime = currentHour * 60 + currentMinute; // Convert to minutes
+    
+    // Define time windows for each medication time
+    const timeWindows: { [key: string]: { start: number; end: number; label: string } } = {
+      'After Breakfast': { start: 8 * 60 + 0, end: 10 * 60 + 0, label: '8:00 AM - 10:00 AM' },
+      'Before Lunch': { start: 11 * 60 + 0, end: 13 * 60 + 0, label: '11:00 AM - 1:00 PM' },
+      'After Lunch': { start: 13 * 60 + 0, end: 15 * 60 + 0, label: '1:00 PM - 3:00 PM' },
+      'High Tea': { start: 16 * 60 + 0, end: 18 * 60 + 0, label: '4:00 PM - 6:00 PM' },
+      'Before Dinner': { start: 18 * 60 + 0, end: 20 * 60 + 0, label: '6:00 PM - 8:00 PM' },
+      'After Dinner': { start: 20 * 60 + 0, end: 22 * 60 + 0, label: '8:00 PM - 10:00 PM' }
+    };
+    
+    const window = timeWindows[med.time_of_day];
+    if (!window) return true; // If time not recognized, allow anytime
+    
+    return currentTime >= window.start && currentTime <= window.end;
+  };
+
+  // Helper: get time window label
+  const getTimeWindowLabel = (med: any) => {
+    if (!med.time_of_day) return null;
+    
+    const timeWindows: { [key: string]: string } = {
+      'After Breakfast': '8:00 AM - 10:00 AM',
+      'Before Lunch': '11:00 AM - 1:00 PM',
+      'After Lunch': '1:00 PM - 3:00 PM',
+      'High Tea': '4:00 PM - 6:00 PM',
+      'Before Dinner': '6:00 PM - 8:00 PM',
+      'After Dinner': '8:00 PM - 10:00 PM'
+    };
+    
+    return timeWindows[med.time_of_day] || med.time_of_day;
+  };
+
+  // Helper: get status for medication today
+  const getMedicationStatus = (med: any) => {
+    const takenToday = isTakenToday(med.id);
+    const scheduledToday = isScheduledToday(med);
+    const withinTimeWindow = isWithinTimeWindow(med);
+    
+    if (takenToday) return { status: 'taken', text: 'Taken', color: 'bg-green-500 text-white' };
+    if (scheduledToday && withinTimeWindow) return { status: 'due', text: 'Due Now', color: 'bg-blue-600 text-white hover:bg-blue-700' };
+    if (scheduledToday && !withinTimeWindow) return { status: 'outside-time', text: 'Outside Time Window', color: 'bg-gray-400 text-white' };
+    return { status: 'not-scheduled', text: 'Not Today', color: 'bg-gray-300 text-gray-600' };
+  };
+
+  // Filter medications to show only today's scheduled ones
+  const todaysMedications = meds.filter(med => isScheduledToday(med));
+
   return (
     <div className="max-w-4xl mx-auto p-4 md:p-8 space-y-8">
       {/* Header */}
@@ -194,8 +258,8 @@ export default function PatientDashboard({ profile }: { profile: any }) {
           color="from-green-100 to-green-50"
         />
         <StatCard
-          label="Total Medications"
-          value={totalMeds}
+          label="Today's Scheduled"
+          value={todaysMedications.length}
           icon={<ClipboardList className="w-6 h-6 text-blue-500" />}
           color="from-blue-100 to-blue-50"
         />
@@ -209,7 +273,7 @@ export default function PatientDashboard({ profile }: { profile: any }) {
 
       {/* Tabs */}
       <nav className="flex space-x-4 border-b pb-2">
-        <TabButton active={activeTab === "overview"} onClick={() => setActiveTab("overview")}> <ClipboardList className="w-4 h-4 mr-1" /> Overview </TabButton>
+        <TabButton active={activeTab === "overview"} onClick={() => setActiveTab("overview")}> <ClipboardList className="w-4 h-4 mr-1" /> Today's Medications </TabButton>
         <TabButton active={activeTab === "calendar"} onClick={() => setActiveTab("calendar")}> <CalendarDays className="w-4 h-4 mr-1" /> Calendar </TabButton>
       </nav>
 
@@ -217,37 +281,121 @@ export default function PatientDashboard({ profile }: { profile: any }) {
       <section>
         {activeTab === "overview" && (
           <div className="space-y-4">
-            <h2 className="text-lg font-semibold mb-2">Your Medications</h2>
-            {meds.map((med: any) => {
-              const takenToday = isTakenToday(med.id);
-              return (
-                <div key={med.id} className="p-4 border rounded flex justify-between items-center bg-white shadow-sm">
-                  <div>
-                    <p className="font-medium">{med.name}</p>
-                    <p className="text-sm text-gray-500">Dosage: {med.dosage}</p>
-                    {med.days_of_week && (
-                      <p className="text-xs text-gray-400">Days: {med.days_of_week.join(', ')}</p>
-                    )}
-                  </div>
-                  {takenToday ? (
-                    <button
-                      className="text-sm px-3 py-1 rounded flex items-center space-x-1 bg-gray-400 text-white"
-                      disabled
-                    >
-                      <CheckCircle className="w-4 h-4" />
-                      <span>Taken</span>
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => markAsTaken(med.id)}
-                      className="text-sm px-3 py-1 rounded flex items-center space-x-1 bg-blue-600 text-white hover:bg-blue-700"
-                    >
-                      <span>Mark as Taken</span>
-                    </button>
-                  )}
-                </div>
-              );
-            })}
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold mb-2">Today's Medications</h2>
+              <div className="text-sm text-gray-500">
+                {new Date().toLocaleDateString('en-US', { 
+                  weekday: 'long', 
+                  year: 'numeric', 
+                  month: 'long', 
+                  day: 'numeric' 
+                })}
+              </div>
+            </div>
+            
+            {todaysMedications.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                <ClipboardList className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                <p>No medications scheduled for today.</p>
+                <p className="text-sm">Check your calendar view to see your full schedule.</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {todaysMedications.map((med: any) => {
+                  const status = getMedicationStatus(med);
+                  const takenToday = isTakenToday(med.id);
+                  const scheduledToday = isScheduledToday(med);
+                  const withinTimeWindow = isWithinTimeWindow(med);
+                  const timeWindowLabel = getTimeWindowLabel(med);
+                  
+                  return (
+                    <div key={med.id} className={`p-4 border rounded-lg flex justify-between items-center bg-white shadow-sm transition-all ${
+                      takenToday ? 'border-green-200 bg-green-50' : 
+                      scheduledToday && withinTimeWindow ? 'border-blue-200 bg-blue-50' : 
+                      scheduledToday && !withinTimeWindow ? 'border-orange-200 bg-orange-50' : 'border-gray-200'
+                    }`}>
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-2 mb-1">
+                          <p className="font-semibold text-lg">{med.name}</p>
+                          {scheduledToday && withinTimeWindow && !takenToday && (
+                            <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">
+                              Due Now
+                            </span>
+                          )}
+                          {scheduledToday && !withinTimeWindow && !takenToday && (
+                            <span className="text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded-full">
+                              Outside Time Window
+                            </span>
+                          )}
+                          {takenToday && (
+                            <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">
+                              ✓ Taken
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-sm text-gray-600 mb-1">Dosage: {med.dosage}</p>
+                        {timeWindowLabel && (
+                          <p className="text-sm text-gray-600 mb-1">
+                            Time: {med.time_of_day} ({timeWindowLabel})
+                          </p>
+                        )}
+                        <div className="flex items-center space-x-2">
+                          <span className="text-xs text-gray-500">Scheduled Days:</span>
+                          <div className="flex space-x-1">
+                            {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => (
+                              <span
+                                key={day}
+                                className={`text-xs px-2 py-1 rounded ${
+                                  med.days_of_week?.includes(day)
+                                    ? 'bg-blue-100 text-blue-700 font-medium'
+                                    : 'bg-gray-100 text-gray-400'
+                                }`}
+                              >
+                                {day}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="ml-4">
+                        {takenToday ? (
+                          <button
+                            className="text-sm px-4 py-2 rounded-lg flex items-center space-x-2 bg-green-500 text-white cursor-default"
+                            disabled
+                          >
+                            <CheckCircle className="w-4 h-4" />
+                            <span>Taken</span>
+                          </button>
+                        ) : scheduledToday && withinTimeWindow ? (
+                          <button
+                            onClick={() => markAsTaken(med.id)}
+                            className="text-sm px-4 py-2 rounded-lg flex items-center space-x-2 bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+                          >
+                            <CheckCircle className="w-4 h-4" />
+                            <span>Mark as Taken</span>
+                          </button>
+                        ) : scheduledToday && !withinTimeWindow ? (
+                          <button
+                            className="text-sm px-4 py-2 rounded-lg flex items-center space-x-2 bg-gray-400 text-white cursor-default"
+                            disabled
+                            title={`Available during: ${timeWindowLabel}`}
+                          >
+                            <span>Outside Time Window</span>
+                          </button>
+                        ) : (
+                          <button
+                            className="text-sm px-4 py-2 rounded-lg flex items-center space-x-2 bg-gray-300 text-gray-600 cursor-default"
+                            disabled
+                          >
+                            <span>Not Today</span>
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
         {activeTab === "calendar" && <CalendarTab profile={profile} />}
