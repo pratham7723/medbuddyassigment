@@ -197,15 +197,17 @@ export default function Auth() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center px-4">
-      <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-md space-y-6">
-        <div className="text-center">
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">MedBuddy</h1>
-          <p className="text-gray-600">
-            {isSignup ? "Create your account" : "Welcome back"}
-          </p>
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-tr from-blue-100 via-white to-green-100 relative overflow-hidden px-4">
+      <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-md space-y-6 mt-24">
+        {/* Logo inside the card as header */}
+        <div className="flex flex-col items-center mb-2">
+          <span className="bg-gradient-to-tr from-blue-400 to-green-400 p-2 rounded-full shadow mb-2">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M20.8 6.6a5.5 5.5 0 0 0-7.8 0l-.9.9-.9-.9a5.5 5.5 0 0 0-7.8 7.8l.9.9 7.8 7.8 7.8-7.8.9-.9a5.5 5.5 0 0 0 0-7.8z"></path>
+            </svg>
+          </span>
+          <span className="font-bold text-lg text-gray-700 tracking-tight">MedBuddy</span>
         </div>
-
         {/* Role Selection Buttons */}
         <div className="flex gap-2">
           <button
