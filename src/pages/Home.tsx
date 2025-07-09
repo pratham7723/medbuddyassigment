@@ -3,6 +3,10 @@ import { useNavigate } from "react-router-dom";
 export default function Home() {
   const navigate = useNavigate();
 
+  const handleRoleSelect = (role: "patient" | "caretaker") => {
+    navigate(`/auth?role=${role}`);
+  };
+
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-tr from-blue-100 via-white to-green-100 relative overflow-hidden">
       {/* Minimal header with small logo */}
@@ -12,7 +16,7 @@ export default function Home() {
             <path d="M20.8 6.6a5.5 5.5 0 0 0-7.8 0l-.9.9-.9-.9a5.5 5.5 0 0 0-7.8 7.8l.9.9 7.8 7.8 7.8-7.8.9-.9a5.5 5.5 0 0 0 0-7.8z"></path>
           </svg>
         </span>
-        <span className="font-bold text-lg text-gray-700 tracking-tight">MediCare</span>
+        <span className="font-bold text-lg text-gray-700 tracking-tight">MedBuddy</span>
       </div>
 
       {/* Split layout */}
@@ -20,7 +24,7 @@ export default function Home() {
         {/* Patient Side */}
         <div
           className="flex-1 bg-gradient-to-br from-blue-200 to-blue-50 flex flex-col items-center justify-center p-10 transition-transform duration-200 hover:scale-105 hover:shadow-xl cursor-pointer group"
-          onClick={() => navigate("/auth")}
+          onClick={() => handleRoleSelect("patient")}
         >
           <span className="mb-4">
             {/* Playful pill bottle icon */}
@@ -32,7 +36,7 @@ export default function Home() {
             </svg>
           </span>
           <h2 className="text-2xl font-extrabold text-blue-900 mb-1">Patient</h2>
-          <p className="text-blue-800 text-sm mb-2 font-medium">“My Meds, My Way”</p>
+          <p className="text-blue-800 text-sm mb-2 font-medium">"My Meds, My Way"</p>
           <p className="text-xs text-blue-700 mb-4 text-center">
             Track, check off, and celebrate your medication wins. Simple, visual, and made for you.
           </p>
@@ -51,7 +55,7 @@ export default function Home() {
         {/* Caretaker Side */}
         <div
           className="flex-1 bg-gradient-to-br from-green-200 to-green-50 flex flex-col items-center justify-center p-10 transition-transform duration-200 hover:scale-105 hover:shadow-xl cursor-pointer group"
-          onClick={() => navigate("/auth")}
+          onClick={() => handleRoleSelect("caretaker")}
         >
           <span className="mb-4">
             {/* Playful shield/heart icon */}
@@ -61,7 +65,7 @@ export default function Home() {
             </svg>
           </span>
           <h2 className="text-2xl font-extrabold text-green-900 mb-1">Caretaker</h2>
-          <p className="text-green-800 text-sm mb-2 font-medium">“Support, Simplified”</p>
+          <p className="text-green-800 text-sm mb-2 font-medium">"Support, Simplified"</p>
           <p className="text-xs text-green-700 mb-4 text-center">
             Easily monitor, remind, and cheer on your loved ones. All their progress, at a glance.
           </p>

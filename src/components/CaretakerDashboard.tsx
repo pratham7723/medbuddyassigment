@@ -548,7 +548,7 @@ export default function CaretakerDashboard({ profile }: { profile: any }) {
       <header className="flex justify-between items-center py-4 border-b">
         <div className="flex items-center space-x-3">
           {/* <UserCircle2 className="w-8 h-8 text-blue-600" /> */}
-          <span className="text-2xl font-bold tracking-tight">MediCare Companion</span>
+          <span className="text-2xl font-bold tracking-tight">MedBuddy Companion</span>
         </div>
         <button
           onClick={logout}

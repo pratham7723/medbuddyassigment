@@ -47,7 +47,7 @@ export default function Dashboard() {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-blue-50 to-green-50">
         <div className="bg-white rounded-2xl shadow-lg p-8 text-center max-w-md w-full">
-          <h1 className="text-3xl font-bold mb-4">Welcome to MediCare Companion</h1>
+          <h1 className="text-3xl font-bold mb-4">Welcome to MedBuddy Companion</h1>
           <p className="text-gray-600 mb-8">Your trusted partner in medication management.</p>
           <div className="flex flex-col gap-4">
             <button
